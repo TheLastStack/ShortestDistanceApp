@@ -1,0 +1,31 @@
+#find{
+  border-radius: 50%;
+  position:absolute;
+  bottom:0px;
+  right:0px;
+  margin:5%;
+  border: 1px solid #000;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-origin: content-box;
+  padding: 1.5%;
+  background-color: #69f;
+}
+#find:hover {
+  background-color: #66e;
+}
+#find:active {
+  background-color: #555;
+}
+body{
+  background-color: #def;
+}
+#map {
+  position:absolute;
+  left:1%;
+  top:1%;
+  height:96vh;
+  width:96vw;
+  margin:1%;
+}
