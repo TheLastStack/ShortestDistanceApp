@@ -18,8 +18,9 @@ def start():
 def gotcoords():
     print(request.form) #Received POST data in request.form
     entered_points = {}
-    for key, value in request.form:
-        entered_points[key] = value
+    for key, value in request.form.lists():
+        entered_points[key] = value[0]
+    print(entered_points)
     # Received Points are present in dictionary here.
     # A* algorithm here
     # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
@@ -29,4 +30,5 @@ def gotcoords():
     for x, y in resulting_nodes:
         xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
     # Result being sent back.
+    print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)

@@ -1,10 +1,12 @@
-#find{
+button{
   border-radius: 50%;
+  border: 1px solid;
+}
+#find{
   position:absolute;
   bottom:0px;
   right:0px;
-  margin:5%;
-  border: 1px solid #000;
+  margin:4%;
   background-repeat: no-repeat;
   background-position: center center;
   background-size: cover;
@@ -28,4 +30,14 @@ body{
   height:96vh;
   width:96vw;
   margin:1%;
+}
+#plus, #minus{
+  position: absolute;
+  margin: 3%;
+  text-align: center;
+  vertical-align:middle;
+  background-color: #777;
+}
+#plus{
+  right: 0px;
 }
