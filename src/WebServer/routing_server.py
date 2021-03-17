@@ -14,9 +14,6 @@ DB_NAME = 'osm'
 def start():
     return render_template('route_map.html')
 
-def update_map(min_x, min_y, max_x, max_y, file_id):
-
-
 @app.route('/navigate', methods=['POST'])
 def gotcoords():
     print(request.form) #Received POST data in request.form
