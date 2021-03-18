@@ -24,11 +24,12 @@ function sizeAdjust() {
     document.getElementById(ids[i]).style.bottom=Math.round(1.1 * button_size).toString() + "px";
     document.getElementById(ids[i]).style['font-size']=Math.round(0.8 * keeping_size).toString() + "px";
   }
-  document.getElementById('minus').style.right=Math.round(1.5 * keeping_size).toString() + "px";
+  document.getElementById('plus').style.right=Math.round(keeping_size / 3).toString() + "px";
+  document.getElementById('minus').style.right=Math.round(1.6 * keeping_size).toString() + "px";
 }
 sizeAdjust();
-window.addEventListener('resize', sizeAdjust);
 var map = new ol.Map({
+  interactions: ol.interaction.defaults().extend([new ol.interaction.PinchZoom()]),
   target: 'map',
   layers: [
     new ol.layer.Tile({
@@ -72,6 +73,7 @@ vectorLayer = new ol.layer.Vector({
   style: selectStyle
 });
 map.addLayer(vectorLayer);
+var select_del;
 var select = new ol.interaction.Select({
   style: selectStyle,
   layers:[vectorLayer]
@@ -97,7 +99,8 @@ function drawCoords(status, response) {
     var route_trace = new ol.geom.LineString([]);
     for(var i = 0; i < nodes.length; i++)
     {
-      route_trace.appendCoordinate([parseFloat(nodes[i].getElementsByTagName("x")[0].textContent), parseFloat(nodes[i].getElementsByTagName("y")[0].textContent)]);
+      route_trace.appendCoordinate([parseFloat(nodes[i].getElementsByTagName("x")[0].textContent),
+                                  parseFloat(nodes[i].getElementsByTagName("y")[0].textContent)]);
     }
     route_trace.transform('EPSG:4326', 'EPSG:3857');
     var pre_lineLayer = new ol.source.Vector({});
@@ -107,15 +110,18 @@ function drawCoords(status, response) {
         name: "Line_trace"
       })
     );
+    var color = "#" + ((1 << 24) + ((Math.random() * 200) << 16) + ((Math.random() * 200) << 8) + Math.random() * 200).toString(16).slice(1);
+    color = color.split('.')[0];
     var vectortracer = new ol.layer.Vector({
       source: pre_lineLayer,
       name: "route_layer",
       style: new ol.style.Style({
         stroke : new ol.style.Stroke({
-         color: '#0000ff',
+         color: color,
          width: 5
-       })
-     })
+        })
+      }),
+      opacity: 0.5
     });
     map.addLayer(vectortracer);
     vectortracer.setZIndex(layer_length);
@@ -138,7 +144,8 @@ function addRoute() {
         new_vectorLayer = new ol.layer.Vector({
           source: copy,
           name: 'route_layer$0',
-          style: copy2
+          style: copy2,
+          opacity: 0.8
         });
         const zindex = layer.getZIndex();
         map.removeLayer(layer);
@@ -154,7 +161,8 @@ function addRoute() {
         new_vectorLayer = new ol.layer.Vector({
           source: copy,
           name: 'route_layer$' + idx.toString(),
-          style: copy2
+          style: copy2,
+          opacity: 0.8
         });
         const zindex = layer.getZIndex();
         map.removeLayer(layer);
@@ -165,25 +173,43 @@ function addRoute() {
   });
 }
 function removeRoute() {
-  if (saved_layers.length != 0) {
-    var pulled = 0;
-    map.getLayers().forEach(layer => {
-    if (layer.get('name') && layer.get('name') == 'route_layer') {
-        map.removeLayer(layer);
-        pulled = 1;
-      }
-    });
-    if (pulled == 0) {
-      const elementToRemove = saved_layers.pop();
-      map.getLayers().forEach(layer => {
-      if (layer.get('name') && layer.get('name') == elementToRemove) {
-          map.removeLayer(layer);
-        }
-      });
-
+  var isRoutepresent = 0;
+  map.getLayers().forEach(layer => {
+  if (layer.get('name') && layer.get('name') == 'route_layer') {
+      map.removeLayer(layer);
+      isRoutepresent = 1;
     }
+  });
+  if (saved_layers.length != 0 || isRoutepresent != 1) {
+    select_del = new ol.interaction.Select({});
+    map.addInteraction(select_del);
+    if (isRoutepresent != 1 && saved_layers.length != 0) {
+      document.getElementById("minus").className += " pressed";
+    }
+    select_del.on('select', function(e) {
+      selected_layer = select_del.getLayer(e.selected[0]);
+      if (selected_layer.get('name').substring(0, 5).localeCompare('route') == 0)
+      {
+        saved_layers = saved_layers.filter(item => {
+          return item != selected_layer.get("name");
+        });
+        map.removeLayer(selected_layer);
+      }
+      map.removeInteraction(select_del);
+      var clName = document.getElementById("minus").className;
+      document.getElementById("minus").className = clName.replace(" pressed", "");
+    });
   }
 }
+window.addEventListener('resize', function() {
+  sizeAdjust();
+  map.getLayers().forEach(layer => {
+  if (layer.get('name') && layer.get('name') == "Marker_layer") {
+      layer.changed();
+    }
+  });
+  map.renderSync();
+}, false);
 function sendCoords() {
   var XHR = new XMLHttpRequest(),
         FD  = new FormData();

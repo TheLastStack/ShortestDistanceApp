@@ -2,11 +2,11 @@ button{
   border-radius: 50%;
   border: 1px solid;
 }
-#find{
+#find.classic{
   position:absolute;
   bottom:0px;
   right:0px;
-  margin:4%;
+  margin:4% 4% 4% 5%;
   background-repeat: no-repeat;
   background-position: center center;
   background-size: cover;
@@ -27,17 +27,33 @@ body{
   position:absolute;
   left:1%;
   top:1%;
-  height:96vh;
-  width:96vw;
-  margin:1%;
+  height:98vh;
+  width:99vw;
+  margin:0px;
 }
 #plus, #minus{
-  position: absolute;
-  margin: 3%;
   text-align: center;
   vertical-align:middle;
-  background-color: #777;
+  position: absolute;
+}
+#plus.classic, #minus.classic{
+  margin: 0px 2% 3% 4%;
 }
 #plus{
-  right: 0px;
+  background-color: #77ce7d;
+}
+#plus:hover{
+  background-color: #58995d;
+}
+#plus:active{
+  background-color: #2c4c2e;
+}
+#minus{
+  background-color: #ce7d77;
+}
+#minus:hover{
+  background-color: #995d58;
+}
+#minus.pressed{
+  background-color: #4c2e2c;
 }
