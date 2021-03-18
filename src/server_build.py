@@ -7,7 +7,8 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script initializes the postGIS database.'
-        'Ensure you have installed PostgreSQL and PostGIS extension before starting the installation')
+        'Ensure you have installed PostgreSQL and PostGIS extension before starting the installation'
+        'Please ensure you have either installed osm2pgsql or provide a path to an installed copy.')
     parser.add_argument('-U','--DBUSER', default='postgres', help="User Name of PostGIS database")
     parser.add_argument('-d', '--DBNAME', default='osm', help="Name of PostGIS database to create/overwrite")
     parser.add_argument('-W', '--DBPASSWORD', help="Password for user authentication")
@@ -35,13 +36,13 @@ if __name__ == '__main__':
             min_x = custom_min((COORDS[1],))
             max_y = custom_max((COORDS[2],))
             max_x = custom_max((COORDS[3],))
-            request_string = "(way[\"highway\"]({},{},{},{});node(w););out body;"
+            request_string = "(way({s},{w},{n},{e});node({s},{w},{n},{e});rel({s},{w},{n},{e}););out body;"
             req.urlretrieve('https://overpass-api.de/api/interpreter?data=' +
-                                parse.quote_plus(request_string.format(min_y, min_x, max_y, max_x),
+                                parse.quote_plus(request_string.format(s=min_y, w=min_x, n=max_y, e=max_x),
                                                 safe="[]();.,"),
                              os.path.join(os.getcwd(), "osm_d.osm"))
             XML_NAME = 'osm_d.osm'
-        print(PREFIX_STRING)
+        print("Accessing " + PREFIX_STRING)
         if os.name.lower() in ['windows', 'nt']:
             if subprocess.call("powershell -Command \"$env:PGPASSWORD='{}'; psql -U {} -c 'create database {} encoding utf8;'\"".format(DB_PASSWORD, DB_USER, DB_NAME)) != 0:
                 sys.exit(1)
@@ -56,12 +57,13 @@ if __name__ == '__main__':
                 sys.exit(1)
             if subprocess.run(['psql', PREFIX_STRING, '-U', DB_USER, '-d', DB_NAME, '-c', '\'create extension hstore;\''], capture_output=True).stderr is not None:
                 sys.exit(1)
+    if input("Do you want to transfer data into the named database(Y/N)? ").tolower() is "y":
         if os.name.lower() in ['windows', 'nt']:
             try:
                 path = input('Enter path to osm2pgsql binary>')
                 output = subprocess.run(
                     [path + '\\osm2pgsql',
-                     '-S', '{}\\default.style'.format(path), '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P', DB_PORT, XML_NAME],
+                     '-S', '{}\\default.style'.format(path), '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P', DB_PORT, XML_NAME, '--hstore'],
                     shell=True, check=True)
             except subprocess.CalledProcessError as exc:
                 print("Status : FAIL", exc.returncode, exc.output)
@@ -70,11 +72,11 @@ if __name__ == '__main__':
             try:
                 output = subprocess.run(
                     ['osm2pgsql',
-                     '-s', '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P', DB_PORT, XML_NAME],
+                     '-s', '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P', DB_PORT, XML_NAME, '--hstore'],
                     shell=True, check=True)
             except subprocess.CalledProcessError as exc:
                 print("Status : FAIL", exc.returncode, exc.output)
                 sys.exit(1)
-        with open("credentials.key", "w") as location:
-            location.write(PREFIX_STRING)
-            location.write(DB_NAME)
+    with open("credentials.key", "w") as location:
+        location.write(PREFIX_STRING + "\n")
+        location.write(DB_NAME)

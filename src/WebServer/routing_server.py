@@ -1,14 +1,11 @@
 from flask import Flask
 from flask import render_template
 from flask import request
+import os
 import dicttoxml
 import random
 
 app = Flask(__name__)
-
-DB_USER = 'postgres' # Default user is postgres
-DB_PASSOWRD = '' # Need password to access database
-DB_NAME = 'osm'
 
 @app.route('/')
 def start():
@@ -32,3 +29,9 @@ def gotcoords():
     # Result being sent back.
     print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)
+
+
+with open(os.path.join(os.path.dirname(os.getcwd()), "credentials.key"), "r") as location:
+    file = location.read().splitlines()
+PREFIX_STRING = file[0] #Prefix string contains all required database server details
+DB_NAME = file[1]
