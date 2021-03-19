@@ -81,9 +81,11 @@ if __name__ == '__main__':
     PREFIX_STRING = "postgresql://{}:{}@{}:{}".format(DB_USER, DB_PASSWORD, DB_HOST, DB_PORT)
     if args.L is not None:
         COORDS = [float(i) for i in args.L]
+    else:
+        COORDS = None
     if input("Do you want to create a database (Y/N)?").lower() == "y":
         create_database(XML_NAME=XML_NAME, DB_NAME=DB_NAME, PREFIX_STRING=PREFIX_STRING, DB_USER=DB_USER, DB_PASSWORD=DB_PASSWORD, COORDS=COORDS)
-    if input("Do you want to transfer data into the named database(Y/N)? ").tolower() == "y":
+    if input("Do you want to transfer data into the named database(Y/N)? ").lower() == "y":
         modify_database(DB_NAME=DB_NAME, DB_USER=DB_USER, DB_HOST=DB_HOST, DB_PORT=DB_PORT, XML_NAME=XML_NAME)
     with open("credentials.key", "w") as location:
         location.write(PREFIX_STRING + "\n")
