@@ -35,7 +35,7 @@ class Edge:
         raise AttributeError("Attempting to change edge length")
     def __set__(self, instance, directed):
         raise AttributeError("Attempting to change directionality of edge")
-    def __set__(self, instance, edge_length):
+    def __set__(self, instance, directed):
         raise AttributeError("Attempting to change edge status")
 
 
