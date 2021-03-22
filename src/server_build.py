@@ -4,24 +4,10 @@ import os
 import sys
 import subprocess
 import argparse
+import psycopg2 as psy
 
 
-def create_database(PREFIX_STRING, XML_NAME, DB_PASSWORD, DB_NAME, DB_USER, COORDS=None):
-    if XML_NAME is None:
-        if COORDS is None:
-            sys.exit(1)
-        custom_min = lambda x : (round(min(x) * 50) - 1) / 50
-        custom_max = lambda x : (round(max(x) * 50) + 1) / 50
-        min_y = custom_min((COORDS[0],))
-        min_x = custom_min((COORDS[1],))
-        max_y = custom_max((COORDS[2],))
-        max_x = custom_max((COORDS[3],))
-        request_string = "(way({s},{w},{n},{e});node({s},{w},{n},{e});rel({s},{w},{n},{e}););out body;"
-        req.urlretrieve('https://overpass-api.de/api/interpreter?data=' +
-                            parse.quote_plus(request_string.format(s=min_y, w=min_x, n=max_y, e=max_x),
-                                            safe="[]();.,"),
-                         os.path.join(os.getcwd(), "osm_d.osm"))
-        XML_NAME = 'osm_d.osm'
+def create_database(PREFIX_STRING, XML_NAME, DB_PASSWORD, DB_NAME, DB_USER):
     print("Accessing " + PREFIX_STRING)
     if os.name.lower() in ['windows', 'nt']:
         if subprocess.call("powershell -Command \"$env:PGPASSWORD='{}'; psql -U {} -c 'create database {} encoding utf8;'\"".format(DB_PASSWORD, DB_USER, DB_NAME)) != 0:
@@ -38,13 +24,15 @@ def create_database(PREFIX_STRING, XML_NAME, DB_PASSWORD, DB_NAME, DB_USER, COOR
         if subprocess.run(['psql', PREFIX_STRING, '-U', DB_USER, '-d', DB_NAME, '-c', '\'create extension hstore;\''], capture_output=True).stderr is not None:
             sys.exit(1)
 
-def modify_database(DB_NAME, DB_USER, DB_HOST, DB_PORT, XML_NAME):
-    if os.name.lower() in ['windows', 'nt']:
+def modify_database(DB_NAME, DB_PASSWORD, DB_USER, DB_HOST, DB_PORT, XML_NAME):
+    if input("Is osm2pgsql added to path? (Y/N)").lower() == "n":
         try:
             path = input('Enter path to osm2pgsql binary>')
             output = subprocess.run(
-                [path + '\\osm2pgsql',
-                 '-S', '{}\\default.style'.format(path), '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P', DB_PORT, XML_NAME, '--hstore'],
+                [os.path.join(os.path.join(os.getcwd(), path), 'osm2pgsql.exe'),
+                 '-S', os.path.join(os.path.join(os.getcwd(), path), 'default.style'),
+                 '-W', '-U', DB_USER, '-d', DB_NAME, '-H', DB_HOST, '-P',
+                 DB_PORT, XML_NAME, '--hstore'],
                 shell=True, check=True)
         except subprocess.CalledProcessError as exc:
             print("Status : FAIL", exc.returncode, exc.output)
@@ -58,7 +46,25 @@ def modify_database(DB_NAME, DB_USER, DB_HOST, DB_PORT, XML_NAME):
         except subprocess.CalledProcessError as exc:
             print("Status : FAIL", exc.returncode, exc.output)
             sys.exit(1)
-
+    print("Performing preprocessing before use...")
+    with psy.connect(database=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT) as conn:
+        with conn.cursor() as cur:
+            print("Finding motorable roads ...")
+            with open("trace_roads.sql", "r", encoding="utf-8") as sql_build:
+                cur.execute(sql_build.read())
+        with conn.cursor() as cur:
+            print("Finding road intersections ...")
+            with open("find_intersections.sql", "r", encoding="utf-8") as sql_build:
+                cur.execute(sql_build.read())
+        with conn.cursor() as cur:
+            print("Breaking roads to edges between nodes ...")
+            with open("trace_edges.sql", "r", encoding="utf-8") as sql_build:
+                cur.execute(sql_build.read())
+        with conn.cursor() as cur:
+            print("Removing unnecessay nodes and splicing edges ...")
+            with open("find_intersections.sql", "r", encoding="utf-8") as sql_build:
+                cur.execute(sql_build.read())
+    print("Preprocessing complete")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script initializes the postGIS database.'
@@ -83,10 +89,25 @@ if __name__ == '__main__':
         COORDS = [float(i) for i in args.L]
     else:
         COORDS = None
+    if XML_NAME is None:
+        if COORDS is None:
+            sys.exit(1)
+        custom_min = lambda x : (round(min(x) * 50) - 1) / 50
+        custom_max = lambda x : (round(max(x) * 50) + 1) / 50
+        min_y = custom_min((COORDS[0],))
+        min_x = custom_min((COORDS[1],))
+        max_y = custom_max((COORDS[2],))
+        max_x = custom_max((COORDS[3],))
+        request_string = "(way({s},{w},{n},{e});node({s},{w},{n},{e});rel({s},{w},{n},{e}););out body;"
+        req.urlretrieve('https://overpass-api.de/api/interpreter?data=' +
+                            parse.quote_plus(request_string.format(s=min_y, w=min_x, n=max_y, e=max_x),
+                                            safe="[]();.,"),
+                         os.path.join(os.getcwd(), "osm_d.osm"))
+        XML_NAME = 'osm_d.osm'
     if input("Do you want to create a database (Y/N)?").lower() == "y":
         create_database(XML_NAME=XML_NAME, DB_NAME=DB_NAME, PREFIX_STRING=PREFIX_STRING, DB_USER=DB_USER, DB_PASSWORD=DB_PASSWORD, COORDS=COORDS)
     if input("Do you want to transfer data into the named database(Y/N)? ").lower() == "y":
-        modify_database(DB_NAME=DB_NAME, DB_USER=DB_USER, DB_HOST=DB_HOST, DB_PORT=DB_PORT, XML_NAME=XML_NAME)
+        modify_database(DB_NAME=DB_NAME, DB_USER=DB_USER, DB_HOST=DB_HOST, DB_PORT=DB_PORT, XML_NAME=XML_NAME, DB_PASSWORD=DB_PASSWORD)
     with open("credentials.key", "w") as location:
         location.write(PREFIX_STRING + "\n")
         location.write(DB_NAME)

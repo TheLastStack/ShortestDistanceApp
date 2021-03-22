@@ -31,12 +31,6 @@ class Edge:
     def done(self):
         '''Used to signify that nodes beyond this edge have been exhausted'''
         self._completed = True
-    def __set__(self, instance, edge_length):
-        raise AttributeError("Attempting to change edge length")
-    def __set__(self, instance, directed):
-        raise AttributeError("Attempting to change directionality of edge")
-    def __set__(self, instance, _completed):
-        raise AttributeError("Attempting to change edge status")
 
 
 class EdgeIterator:
@@ -75,10 +69,10 @@ class Node:
                 else:
                     raise ValueError("Attempting to push a directed edge to another node")
             else:
-                if edge.head is None:
-                    edge.head = self
-                elif edge.tail is None:
+                if edge.tail is None:
                     edge.tail = self
+                elif edge.head is None:
+                    edge.head = self
                 else:
                     raise ValueError("Attempting to push an edge into more than two nodes")
             if edge.directed:
@@ -105,7 +99,7 @@ class Node:
         '''
         return self.edges[idx]
     def __setitem__(self, idx, value):
-        return self.edges[idx] = value
+        self.edges[idx] = value
 
 
 @app.route('/')
