@@ -1,105 +1,84 @@
 from flask import Flask
 from flask import render_template
 from flask import request
+from statistics import mean
+import pandas as pd
+import heapq
+import networkx as nx
 import os
 import dicttoxml
 import random
 
 app = Flask(__name__)
 
+latlonData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "nodes.csv")))
+graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "edges.csv")))
+graphData = graphData[["source", "target", "length"]]
+graphType = nx.Graph()
+g = nx.from_pandas_edgelist(graphData, edge_attr="length", create_using=graphType)
 
-class Edge:
+def calculateHeuristic(currNode):
+    [currLat, currLon] = latlonData[latlonData["id"] == currNode].iloc[0][["lat", "lon"]]
+    curr = (currLat, currLon)
+    dest = (17.240673, 78.432342)
+    #return haversine(curr, dest)
+    return (abs(curr[0]-dest[0]) + abs(curr[1]-dest[1]))
     '''
-    Edge defines an edge in a graph.
-    edge_length (float value) gives the length of the edge in the graph.
-    directed (boolean value) specifies whether the edge is directed. Is true if directed
-    _completed is an internal variable used to check whether the edge has been explored
-    '''
-    def __init__(self, edge_length, directed, tail=None, head=None):
-        '''Initializes the edge'''
-        self.edge_length = edge_length
-        self.directed = directed
-        self.tail = tail
-        self.head = head
-        self._completed = False
-    def __len__(self):
-        '''len(Edge) gives the edge distance'''
-        return self.edge_length
-    def isDone(self):
-        '''Has the edge been explored completely?'''
-        return self._completed
-    def done(self):
-        '''Used to signify that nodes beyond this edge have been exhausted'''
-        self._completed = True
+    Both returns can be used: manhattan distance formula or haversine,
+    both will give same answer
+    calculating manhattan distnace is faster than haversine distance.
 
-
-class EdgeIterator:
-    '''Defines an iterator. Allows use of edges in all places an iterator may be used'''
-    def __init__(self, caller_instance):
-        self._idx = 0
-        self._caller_instance = caller_instance
-    def __next__(self):
-        self._idx += 1
-        if self._idx < len(self._caller_instance.edges):
-            return self._caller_instance.edges[self._idx]
-        else:
-            raise StopIteration("Exhausted edges")
-
-class Node:
+    Aprox 50% less time was taken
     '''
-    Node defines a node in a graph.
-    x (float) and y (float) define the position of the node
-    edges stores edges associated with a node.
-    '''
-    def __init__(self, x, y, edges):
-        '''
-        Pass in x, y values and an iterator returning edges
-        In case of directed edges, push it into the tail node only and set
-        edge head to point to the required node.
-        a -> b
-        Push edge into a only
-        '''
-        self.x = x
-        self.y = y
-        self.edges = []
-        for edge in edges:
-            if edge.directed:
-                if edge.tail is None:
-                    edge.tail = self
-                else:
-                    raise ValueError("Attempting to push a directed edge to another node")
-            else:
-                if edge.tail is None:
-                    edge.tail = self
-                elif edge.head is None:
-                    edge.head = self
-                else:
-                    raise ValueError("Attempting to push an edge into more than two nodes")
-            if edge.directed:
-                if edge.head is self:
-                    raise ValueError("Attempting to push directed edge into head")
-            self.edges.append(edge)
-    def __iter__(self):
-        '''
-        Use this to iterate over all edges. Allows use in for loop
-        '''
-        return EdgeIterator(self)
-    def isDone(self):
-        '''
-        Check whether all edges attached to the node have been exhausted
-        '''
-        for edge in self.edges:
-            if not edge.isDone():
-                return False
-        return True
-    def __getitem__(self, idx):
-        '''
-        Allows access to edges with index operators. Use a[0] to access edge at a.edges[0] of
-        node a.
-        '''
-        return self.edges[idx]
-    def __setitem__(self, idx, value):
-        self.edges[idx] = value
+
+def createPath(last_node, current):
+    path = [current]
+    while current in last_node.keys():
+        current = last_node[current]
+        path.insert(0, current)
+    return path
+
+def aStar(srcNode, destNode):
+    open_list = []
+
+    last_node = {}
+    last_node[srcNode] = None
+
+    cost = {}
+    cost[srcNode] = 0
+
+    heuristic_value = {}
+    heuristic_value[srcNode] = 0
+
+    gScore = {}
+    gScore[srcNode] = 0
+
+    heapq.heappush(open_list, (srcNode, heuristic_value))
+
+    while len(open_list) > 0:
+        currentNode = heapq.heappop(open_list)
+
+        if currentNode[0] == destNode:
+            return createPath(last_node, currentNode[0])
+
+        neighbourData = list(g.neighbors(currentNode[0]))
+
+        for item in neighbourData:
+            neighbourNode = item
+            distance = g[currentNode[0]][neighbourNode]["length"]
+
+            if neighbourNode not in last_node:
+                cost[neighbourNode] = gScore[currentNode[0]] + distance
+
+                if cost[neighbourNode] < gScore.get(neighbourNode, float("inf")):
+                    last_node[neighbourNode] = currentNode[0]
+                    gScore[neighbourNode] = cost[neighbourNode]
+                    heuristic_value[neighbourNode] = gScore[neighbourNode] + calculateHeuristic(neighbourNode)
+
+                    if neighbourNode not in open_list:
+                        heapq.heappush(open_list, (neighbourNode, heuristic_value))
+
+    return open_list
 
 
 @app.route('/')
@@ -115,18 +94,21 @@ def gotcoords():
     print(entered_points)
     # Received Points are present in dictionary here.
     # A* algorithm here
+    srcNode = 7065632060
+    destNode = 5711258337
+    route = aStar(srcNode, destNode)
+    route.pop(0)
+    if len(route) == 0:
+        print("Path Not Found")
+    resulting_nodes = []
+    for node in route:
+        [lat, lon] = latlonData[latlonData["id"] == node].iloc[0][["lat", "lon"]]
+        resulting_nodes.append((lon, lat))
     # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
     # Below statement is a placeholder
-    resulting_nodes = [(0, 0), (random.randint(0, 40), random.randint(0, 40))]
     xml_request_dict = {u'result':[]}
     for x, y in resulting_nodes:
         xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
     # Result being sent back.
     print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)
-
-
-with open(os.path.join(os.path.dirname(os.getcwd()), "credentials.key"), "r") as location:
-    file = location.read().splitlines()
-PREFIX_STRING = file[0] #Prefix string contains all required database server details
-DB_NAME = file[1]
