@@ -2,6 +2,15 @@
 DROP TABLE IF EXISTS intersection_points_new;
 CREATE TABLE
 	intersection_points_new AS
+WITH intersector AS (
+SELECT
+	(ST_Dump(ST_Intersection(a.way, b.way))).geom AS node, a.way AS edge, a.oneway AS oneway,
+	a.bridge AS a_bridge, b.bridge AS b_bridge, a.tunnel AS a_tunnel, b.tunnel AS b_tunnel, a.z_order AS a_res,
+	b.z_order AS b_res
+FROM
+	motor_roads a
+INNER JOIN motor_roads b ON ST_Touches(a.way, b.way) AND a.osm_id <> b.osm_id
+)
 SELECT
 	node, edge, frac, oneway, ROW_NUMBER () OVER (
 						ORDER BY edge, frac
@@ -11,15 +20,29 @@ FROM
 		node, edge, ST_LineLocatePoint(edge, node) AS frac, oneway
 	 FROM
 		(SELECT
-			(ST_Dump(ST_Intersection(a.way, b.way))).geom AS node, a.way AS edge, a.oneway AS oneway
+		 	node, edge, oneway
 		 FROM
-			motor_roads as a,
-			motor_roads as b
+		 	intersector
 		 WHERE
-			ST_Touches(a.way, b.way)
-			AND a.osm_id != b.osm_id
-			AND ((a.bridge IS NULL AND b.bridge IS NULL) OR (a.bridge IS NOT NULL AND b.bridge IS NOT NULL))
-			AND (a.bridge IS NULL OR a.z_order = b.z_order)) AS derived_table
+		 	a_bridge IS NULL AND b_bridge IS NULL
+		 	AND a_tunnel IS NULL AND b_tunnel IS NULL
+		 UNION
+		 SELECT
+			node, edge, oneway
+		 FROM
+			intersector
+		 WHERE
+			a_bridge = b_bridge AND
+		 	a_res = b_res
+		 UNION
+		 SELECT
+			node, edge, oneway
+		 FROM
+			intersector
+		 WHERE
+			a_tunnel = b_tunnel AND
+		 	a_res = b_res
+	 	) AS derived_table
 	 UNION
 	 SELECT
 		ST_StartPoint(a.way) AS node, a.way AS edge, ST_LineLocatePoint(a.way,ST_StartPoint(a.way)) AS frac, a.oneway as oneway
