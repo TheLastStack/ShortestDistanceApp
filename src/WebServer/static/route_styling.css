@@ -1,17 +1,17 @@
 button{
   border-radius: 50%;
   border: 1px solid;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-origin: content-box;
+  padding: 1.5%;
 }
 #find.classic{
   position:absolute;
   bottom:0px;
   right:0px;
   margin:4% 4% 4% 5%;
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
-  background-origin: content-box;
-  padding: 1.5%;
   background-color: #69f;
 }
 #find:hover {
@@ -50,10 +50,31 @@ body{
 }
 #minus{
   background-color: #ce7d77;
+  padding: 1%;
+  background-size: 75%;
 }
 #minus:hover{
   background-color: #995d58;
 }
 #minus.pressed{
   background-color: #4c2e2c;
+}
+#modal.notLoading {
+  display: none;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  background-color: rgba(0,0,0,0.5);
+}
+#loadtext {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  vertical-align:middle;
+  font-size: 10vh;
+  color: #eee;
+  margin: 20vh auto;
+  padding: 10vh;
 }

@@ -76,6 +76,7 @@ map.addLayer(vectorLayer);
 var select_del;
 var select = new ol.interaction.Select({
   style: selectStyle,
+  hitTolerance: 5,
   layers:[vectorLayer]
 });
 var translate = new ol.interaction.Translate({
@@ -130,6 +131,7 @@ function drawCoords(status, response) {
         layer.setZIndex(layer_length + 1);
       }
     });
+    document.getElementById("modal").style.display = "none";
   }
 }
 function addRoute() {
@@ -180,25 +182,24 @@ function removeRoute() {
       isRoutepresent = 1;
     }
   });
-  if (saved_layers.length != 0 || isRoutepresent != 1) {
-    select_del = new ol.interaction.Select({});
-    map.addInteraction(select_del);
-    if (isRoutepresent != 1 && saved_layers.length != 0) {
-      document.getElementById("minus").className += " pressed";
-    }
-    select_del.on('select', function(e) {
-      selected_layer = select_del.getLayer(e.selected[0]);
-      if (selected_layer.get('name').substring(0, 5).localeCompare('route') == 0)
-      {
-        saved_layers = saved_layers.filter(item => {
-          return item != selected_layer.get("name");
-        });
-        map.removeLayer(selected_layer);
-      }
-      map.removeInteraction(select_del);
+  if (saved_layers.length != 0 && isRoutepresent != 1) {
+    document.getElementById("minus").className += " pressed";
+    var map_listener = function(event) {
+      map.forEachLayerAtPixel(event.pixel, function(layer, color) {
+        if (layer.get("name") && layer.get("name").substring(0, 5).localeCompare('route') == 0) {
+          saved_layers = saved_layers.filter(item => {
+            return item != layer.get("name");
+          });
+          map.removeLayer(layer);
+        }
+      }, {
+        hitTolerance: 5
+      });
       var clName = document.getElementById("minus").className;
       document.getElementById("minus").className = clName.replace(" pressed", "");
-    });
+      map.un('singleclick', map_listener);
+    }
+    map.on('singleclick', map_listener);
   }
 }
 window.addEventListener('resize', function() {
@@ -213,6 +214,7 @@ window.addEventListener('resize', function() {
 function sendCoords() {
   var XHR = new XMLHttpRequest(),
         FD  = new FormData();
+  document.getElementById("modal").style.display = "block";
   XHR.onreadystatechange = function () {
     drawCoords(XHR.readyState, XHR.responseText);
   };
