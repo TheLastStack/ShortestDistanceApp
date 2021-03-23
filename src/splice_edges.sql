@@ -52,12 +52,26 @@ DROP TABLE IF EXISTS spliced_edges;
 CREATE TABLE spliced_edges AS
 WITH dt AS
 	(SELECT
-		b.edge AS edge1, d.edge AS edge2, ST_LineMerge(ST_Union(b.edge, d.edge)) AS spliced_edge, b.node AS deleted_node
+			b.edge AS edge1, d.edge AS edge2, ST_LineMerge(ST_Union(b.edge, d.edge)) AS spliced_edge, b.node AS deleted_node
 	FROM
 		(SELECT
 			node AS node, COUNT(node) AS num
 		FROM
-			intersection_edges
+			(SELECT
+				node, edge
+			FROM
+				intersection_edges
+			UNION
+			SELECT
+				COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)), edge
+			FROM
+				intersection_edges
+			UNION
+			SELECT
+				COALESCE(ST_EndPoint(edge), ST_multiline_end(edge)), edge
+			FROM
+				intersection_edges
+			) all_nodes
 		GROUP BY
 			node
 		) e,

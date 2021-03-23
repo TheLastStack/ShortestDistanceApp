@@ -41,3 +41,4 @@ FROM
 	 WHERE
 		start_frac < 1 AND end_frac = 0
 	) d;
+COPY (SELECT source, target, wkt FROM graph_edges) TO 'D:\edges.csv' DELIMITER ',' CSV HEADER;

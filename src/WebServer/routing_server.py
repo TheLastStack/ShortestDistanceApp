@@ -2,26 +2,31 @@ from flask import Flask
 from flask import render_template
 from flask import request
 from statistics import mean
+from shapely import wkt
 import pandas as pd
 import heapq
 import networkx as nx
 import os
+import sys
 import dicttoxml
-import random
+import datetime
 
 app = Flask(__name__)
 
 latlonData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "nodes.csv")))
 graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "edges.csv")))
-graphData = graphData[["source", "target", "length"]]
+graphData = graphData[["source", "target", "length", "wkt"]]
 graphType = nx.Graph()
-g = nx.from_pandas_edgelist(graphData, edge_attr="length", create_using=graphType)
+g = nx.from_pandas_edgelist(graphData, edge_attr=["length", "wkt"], create_using=graphType)
 
 def calculateHeuristic(currNode):
-    [currLat, currLon] = latlonData[latlonData["id"] == currNode].iloc[0][["lat", "lon"]]
+    try:
+        [currLat, currLon] = latlonData[latlonData["id"] == currNode].iloc[0][["lat", "lon"]]
+    except:
+        print(currNode)
+        sys.exit(1)
     curr = (currLat, currLon)
     dest = (17.240673, 78.432342)
-    #return haversine(curr, dest)
     return (abs(curr[0]-dest[0]) + abs(curr[1]-dest[1]))
     '''
     Both returns can be used: manhattan distance formula or haversine,
@@ -36,6 +41,8 @@ def createPath(last_node, current):
     while current in last_node.keys():
         current = last_node[current]
         path.insert(0, current)
+        if current is not None:
+            current = current[0]
     return path
 
 def aStar(srcNode, destNode):
@@ -71,7 +78,7 @@ def aStar(srcNode, destNode):
                 cost[neighbourNode] = gScore[currentNode[0]] + distance
 
                 if cost[neighbourNode] < gScore.get(neighbourNode, float("inf")):
-                    last_node[neighbourNode] = currentNode[0]
+                    last_node[neighbourNode] = (currentNode[0], g[currentNode[0]][neighbourNode]["wkt"])
                     gScore[neighbourNode] = cost[neighbourNode]
                     heuristic_value[neighbourNode] = gScore[neighbourNode] + calculateHeuristic(neighbourNode)
 
@@ -87,7 +94,6 @@ def start():
 
 @app.route('/navigate', methods=['POST'])
 def gotcoords():
-    print(request.form) #Received POST data in request.form
     entered_points = {}
     for key, value in request.form.lists():
         entered_points[key] = value[0]
@@ -98,17 +104,34 @@ def gotcoords():
     destNode = 5711258337
     route = aStar(srcNode, destNode)
     route.pop(0)
-    if len(route) == 0:
-        print("Path Not Found")
+    print(str(datetime.datetime.now())) # Timing
     resulting_nodes = []
-    for node in route:
-        [lat, lon] = latlonData[latlonData["id"] == node].iloc[0][["lat", "lon"]]
-        resulting_nodes.append((lon, lat))
+    for i in route[:-1]:
+        [lat, lon] = latlonData[latlonData["id"] == i[0]].iloc[0][["lat", "lon"]]
+        pulled_edge = list((wkt.loads(i[1])).coords)
+        if pulled_edge[-1] == (lon, lat):
+            pulled_edge = reversed(pulled_edge)
+        for x, y in pulled_edge:
+            resulting_nodes.append((x, y))
+    edge = graphData[(graphData["source"] == route[-1]) & (graphData["target"] == route[-2][0])]
+    if (edge.empty):
+        edge = graphData[(graphData["source"] == route[-2][0]) & (graphData["target"] == route[-1])].iloc[0]["wkt"]
+        [lat, lon] = latlonData[latlonData["id"] == route[-2][0]].iloc[0][["lat", "lon"]]
+    else:
+        edge = edge.iloc[0]["wkt"]
+        [lat, lon] = latlonData[latlonData["id"] == route[-1]].iloc[0][["lat", "lon"]]
+    pulled_edge = list((wkt.loads(edge)).coords)
+    if pulled_edge[-1] == (lon, lat):
+        pulled_edge = reversed(pulled_edge)
+    for x, y in pulled_edge:
+        resulting_nodes.append((x, y))
     # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
-    # Below statement is a placeholder
     xml_request_dict = {u'result':[]}
-    for x, y in resulting_nodes:
-        xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
+    if len(route) > 0:
+        for x, y in resulting_nodes:
+            xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
+    else:
+        xml_request_dict[u'result'] = 'None'
     # Result being sent back.
     print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)
