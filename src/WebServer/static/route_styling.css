@@ -59,3 +59,22 @@ body{
 #minus.pressed{
   background-color: #4c2e2c;
 }
+#modal.notLoading {
+  display: none;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  background-color: rgba(0,0,0,0.5);
+}
+#loadtext {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  vertical-align:middle;
+  font-size: 10vh;
+  color: #eee;
+  margin: 20vh auto;
+  padding: 10vh;
+}

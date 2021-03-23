@@ -131,6 +131,7 @@ function drawCoords(status, response) {
         layer.setZIndex(layer_length + 1);
       }
     });
+    document.getElementById("modal").style.display = "none";
   }
 }
 function addRoute() {
@@ -213,6 +214,7 @@ window.addEventListener('resize', function() {
 function sendCoords() {
   var XHR = new XMLHttpRequest(),
         FD  = new FormData();
+  document.getElementById("modal").style.display = "block";
   XHR.onreadystatechange = function () {
     drawCoords(XHR.readyState, XHR.responseText);
   };
