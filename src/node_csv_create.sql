@@ -13,4 +13,3 @@ FROM
 	) sq1,
 	LATERAL
 		ST_Transform(node, 4326) node_4326;
-COPY (SELECT id, lon, lat FROM graph_node) TO 'D:\nodes.csv' DELIMITER ',' CSV HEADER;

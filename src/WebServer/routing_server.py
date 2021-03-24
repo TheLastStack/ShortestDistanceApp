@@ -13,10 +13,10 @@ import datetime
 
 app = Flask(__name__)
 
-latlonData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "nodes.csv")))
+latlonData = pd.read_csv(os.path.join(os.getcwd(), "Nodes", "nodes.csv"))
 graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "edges.csv")))
 graphData = graphData[["source", "target", "length", "wkt"]]
-graphType = nx.Graph()
+graphType = nx.DiGraph()
 g = nx.from_pandas_edgelist(graphData, edge_attr=["length", "wkt"], create_using=graphType)
 
 def calculateHeuristic(currNode):
@@ -26,7 +26,7 @@ def calculateHeuristic(currNode):
         print(currNode)
         sys.exit(1)
     curr = (currLat, currLon)
-    dest = (17.240673, 78.432342)
+    dest = (78.5317348, 17.3515981001717)#(17.240673, 78.432342)
     return (abs(curr[0]-dest[0]) + abs(curr[1]-dest[1]))
     '''
     Both returns can be used: manhattan distance formula or haversine,
@@ -96,12 +96,23 @@ def start():
 def gotcoords():
     entered_points = {}
     for key, value in request.form.lists():
-        entered_points[key] = value[0]
+        entered_points[key] = float(value[0])
     print(entered_points)
     # Received Points are present in dictionary here.
     # A* algorithm here
-    srcNode = 7065632060
-    destNode = 5711258337
+    #7065632060
+    #5711258337
+    srcNode = latlonData.iloc[
+                ((latlonData["lat"] - entered_points['white_y']).abs() + (latlonData["lon"] - entered_points['white_x']).abs()).idxmin()
+                ]["id"]
+    destNode = latlonData.iloc[
+                ((latlonData["lat"] - entered_points['black_y']).abs() + (latlonData["lon"] - entered_points['black_x']).abs()).idxmin()
+                ]
+    dest = (destNode["lon"], destNode["lat"])
+    srcNode = 65684
+    destNode = destNode["id"]
+    print(srcNode)
+    print(destNode)
     route = aStar(srcNode, destNode)
     route.pop(0)
     print(str(datetime.datetime.now())) # Timing

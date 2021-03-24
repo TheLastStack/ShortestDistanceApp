@@ -57,12 +57,12 @@ function selectStyle(feature, resolution)
 var pre_vectorLayer = new ol.source.Vector({});
 var white_marker = new ol.Feature({
   name: "White Marker",
-  geometry: new ol.geom.Point(ol.proj.transform([0.0, 0.0], 'EPSG:4326', 'EPSG:3857')),
+  geometry: new ol.geom.Point(ol.proj.transform([78.4279, 17.2305], 'EPSG:4326', 'EPSG:3857')),
   color: "white"
 });
 var black_marker = new ol.Feature({
   name: "Black Marker",
-  geometry: new ol.geom.Point(ol.proj.transform([15.0, 0.0], 'EPSG:4326', 'EPSG:3857')),
+  geometry: new ol.geom.Point(ol.proj.transform([78.5746, 17.5427], 'EPSG:4326', 'EPSG:3857')),
   color: "black"
 });
 pre_vectorLayer.addFeature(white_marker);

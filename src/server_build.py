@@ -46,25 +46,39 @@ def modify_database(DB_NAME, DB_PASSWORD, DB_USER, DB_HOST, DB_PORT, XML_NAME):
         except subprocess.CalledProcessError as exc:
             print("Status : FAIL", exc.returncode, exc.output)
             sys.exit(1)
-    print("Performing preprocessing before use...")
-    with psy.connect(database=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT) as conn:
-        with conn.cursor() as cur:
-            print("Finding motorable roads ...")
-            with open("trace_roads.sql", "r", encoding="utf-8") as sql_build:
-                cur.execute(sql_build.read())
-        with conn.cursor() as cur:
-            print("Finding road intersections ...")
-            with open("find_intersections.sql", "r", encoding="utf-8") as sql_build:
-                cur.execute(sql_build.read())
-        with conn.cursor() as cur:
-            print("Breaking roads to edges between nodes ...")
-            with open("trace_edges.sql", "r", encoding="utf-8") as sql_build:
-                cur.execute(sql_build.read())
-        with conn.cursor() as cur:
-            print("Removing unnecessay nodes and splicing edges ...")
-            with open("find_intersections.sql", "r", encoding="utf-8") as sql_build:
-                cur.execute(sql_build.read())
-    print("Preprocessing complete")
+    if input("Do you want to preprocess data before use now (Y/N)? Note: Preprocessing can take up to 8 hrs.").lower() == "y":
+        with psy.connect(database=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT) as conn:
+            with conn.cursor() as cur:
+                print("Finding motorable roads ...")
+                with open("trace_roads.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Finding road intersections ...")
+                with open("find_intersections.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Breaking roads to edges between nodes ...")
+                with open("trace_edges.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Removing unnecessay nodes and splicing edges ...")
+                with open("splice_edges.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Building a list of valid nodes in EPSG 4326...")
+                with open("node_csv_create.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Building a list of valid edges in EPSG 4326...")
+                with open("edge_csv_create.sql", "r", encoding="utf-8") as sql_build:
+                    cur.execute(sql_build.read())
+            with conn.cursor() as cur:
+                print("Exporting lists as csv...")
+                cur.execute("COPY (SELECT id, lon, lat FROM graph_node) TO '%s' DELIMITER ',' CSV HEADER;",
+                            (os.path.join(os.getcwd(), "WebServer", "Nodes", "nodes.csv"),))
+                cur.execute("COPY (SELECT source, target, length, wkt FROM graph_edges) TO '%s' DELIMITER ',' CSV HEADER;",
+                            (os.path.join(os.getcwd(), "WebServer", "Nodes", "edges.csv"),))
+        print("Preprocessing complete")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='This script initializes the postGIS database.'

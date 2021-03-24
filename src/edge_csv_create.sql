@@ -51,10 +51,10 @@ $$;
 DROP TABLE IF EXISTS graph_edges;
 CREATE TABLE graph_edges AS
 SELECT
-	wkt, source, graph_node.id target, edge
+	wkt, source, graph_node.id target, edge, ST_Length(edge) length, oneway
 FROM
 	(SELECT
-		ST_AsText(ST_Transform(edge, 4326)) wkt, graph_node.id source, COALESCE(ST_EndPoint(edge), ST_multiline_end(edge)) end_node, edge
+		ST_AsText(ST_Transform(edge, 4326)) wkt, graph_node.id source, COALESCE(ST_EndPoint(edge), ST_multiline_end(edge)) end_node, edge, oneway
 	FROM
 		(SELECT
 			node, edge, oneway
@@ -68,10 +68,10 @@ FROM
 	LEFT JOIN graph_node ON graph_node.node = end_node
 UNION
 SELECT
-	wkt, source, graph_node.id target, edge
+	wkt, source, graph_node.id target, edge, ST_Length(edge) length, oneway
 FROM
 	(SELECT
-		ST_AsText(ST_Transform(edge, 4326)) wkt, graph_node.id source, COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)) start_node, edge
+		ST_AsText(ST_Transform(edge, 4326)) wkt, graph_node.id source, COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)) start_node, edge, oneway
 	FROM
 		(SELECT
 			node, edge, oneway
@@ -85,7 +85,7 @@ FROM
 	LEFT JOIN graph_node ON graph_node.node = start_node
 UNION
 SELECT
-	wkt, source, graph_node.id target, edge
+	wkt, source, graph_node.id target, edge, ST_Length(edge) length, oneway
 FROM
 	(SELECT
 		ST_AsText(ST_Transform(edge, 4326)) wkt, graph_node.id source, edge,
@@ -93,7 +93,7 @@ FROM
 	 		WHEN COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)) = graph_node.node
 	 		THEN COALESCE(ST_EndPoint(edge), ST_multiline_end(edge))
 	 		ELSE COALESCE(ST_StartPoint(edge), ST_multiline_start(edge))
-	 	END start_node
+	 	END start_node, oneway
 	FROM
 		(SELECT
 			node, edge, oneway
