@@ -13,20 +13,20 @@ import datetime
 
 app = Flask(__name__)
 
-latlonData = pd.read_csv(os.path.join(os.getcwd(), "Nodes", "nodes.csv"))
-graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "edges.csv")))
+latlonData = pd.read_csv(os.path.join(os.getcwd(), "Nodes", "Speed_nodes.csv"))
+graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "speed_edges.csv")))
 graphData = graphData[["source", "target", "length", "wkt"]]
+#graphData["time"] = graphData["length"] / graphData["maxspeed"]
 graphType = nx.DiGraph()
 g = nx.from_pandas_edgelist(graphData, edge_attr=["length", "wkt"], create_using=graphType)
 
-def calculateHeuristic(currNode):
+def calculateHeuristic(currNode, dest):
     try:
         [currLat, currLon] = latlonData[latlonData["id"] == currNode].iloc[0][["lat", "lon"]]
     except:
         print(currNode)
         sys.exit(1)
     curr = (currLat, currLon)
-    dest = (78.5317348, 17.3515981001717)#(17.240673, 78.432342)
     return (abs(curr[0]-dest[0]) + abs(curr[1]-dest[1]))
     '''
     Both returns can be used: manhattan distance formula or haversine,
@@ -45,7 +45,7 @@ def createPath(last_node, current):
             current = current[0]
     return path
 
-def aStar(srcNode, destNode):
+def aStar(srcNode, destNode, dest):
     open_list = []
 
     last_node = {}
@@ -54,36 +54,35 @@ def aStar(srcNode, destNode):
     cost = {}
     cost[srcNode] = 0
 
-    heuristic_value = {}
-    heuristic_value[srcNode] = 0
+    heuristic_value = 0
 
     gScore = {}
     gScore[srcNode] = 0
 
-    heapq.heappush(open_list, (srcNode, heuristic_value))
+    heapq.heappush(open_list, (heuristic_value, srcNode))
 
     while len(open_list) > 0:
         currentNode = heapq.heappop(open_list)
 
-        if currentNode[0] == destNode:
-            return createPath(last_node, currentNode[0])
+        if currentNode[1] == destNode:
+            return createPath(last_node, currentNode[1])
 
-        neighbourData = list(g.neighbors(currentNode[0]))
+        neighbourData = list(g.neighbors(currentNode[1]))
 
         for item in neighbourData:
             neighbourNode = item
-            distance = g[currentNode[0]][neighbourNode]["length"]
+            distance = g[currentNode[1]][neighbourNode]["length"]
 
             if neighbourNode not in last_node:
-                cost[neighbourNode] = gScore[currentNode[0]] + distance
+                cost[neighbourNode] = gScore[currentNode[1]] + distance
 
                 if cost[neighbourNode] < gScore.get(neighbourNode, float("inf")):
-                    last_node[neighbourNode] = (currentNode[0], g[currentNode[0]][neighbourNode]["wkt"])
+                    last_node[neighbourNode] = (currentNode[1], g[currentNode[1]][neighbourNode]["wkt"])
                     gScore[neighbourNode] = cost[neighbourNode]
-                    heuristic_value[neighbourNode] = gScore[neighbourNode] + calculateHeuristic(neighbourNode)
+                    heuristic_value = gScore[neighbourNode] + calculateHeuristic(neighbourNode, dest)
 
                     if neighbourNode not in open_list:
-                        heapq.heappush(open_list, (neighbourNode, heuristic_value))
+                        heapq.heappush(open_list, (heuristic_value, neighbourNode))
 
     return open_list
 
@@ -113,8 +112,11 @@ def gotcoords():
     destNode = destNode["id"]
     print(srcNode)
     print(destNode)
-    route = aStar(srcNode, destNode)
-    route.pop(0)
+    route = aStar(srcNode, destNode, dest)
+    try:
+        route.pop(0)
+    except IndexError:
+        pass
     print(str(datetime.datetime.now())) # Timing
     resulting_nodes = []
     for i in route[:-1]:

@@ -115,10 +115,10 @@ merged_lines AS
 	 ),
 filtered AS
 (SELECT
-	node, edge, deleted_node, oneway
+	node, edge, deleted_node, oneway, highway, maxspeed
  FROM
 	(SELECT
-		node, deleted_node, oneway,
+		node, deleted_node, oneway, highway, maxspeed,
 		CASE
 			WHEN edge1 = edge
 			THEN final_spliced_edge
@@ -140,26 +140,29 @@ filtered AS
 		node,
 		edge,
 		oneway,
+    highway,
+    maxspeed,
 		deleted_node
 ),
 adding_spliced_edges AS
 (
 	SELECT
-		edge, COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)) AS node_1, COALESCE(ST_EndPoint(edge), ST_multiline_end(edge)) AS node_2, oneway
+		edge, COALESCE(ST_StartPoint(edge), ST_multiline_start(edge)) AS node_1, COALESCE(ST_EndPoint(edge), ST_multiline_end(edge)) AS node_2, oneway,
+    highway, maxspeed
 	FROM
 		filtered
 	WHERE
 		deleted_node IS NOT NULL
 )
 SELECT
-	node, edge, oneway
+	node, edge, oneway, highway, maxspeed
 FROM
 	filtered
 WHERE
 	deleted_node IS NULL
 UNION
 SELECT
-	fd.node, asd.edge, asd.oneway
+	fd.node, asd.edge, asd.oneway, asd.highway, asd.maxspeed
 FROM
 	adding_spliced_edges asd,
 	filtered fd
