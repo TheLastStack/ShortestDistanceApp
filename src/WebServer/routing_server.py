@@ -10,7 +10,7 @@ import networkx as nx
 import os
 import sys
 import dicttoxml
-import datetime
+import time
 
 app = Flask(__name__)
 
@@ -50,7 +50,7 @@ def createPath(last_node, current):
             current = current[0]
     return path, ETA, distance
 
-def aStar(srcNode, destNode, dest):
+def aStar(srcNode, destNode, dest, x, y):
     open_list = []
 
     last_node = {}
@@ -76,13 +76,14 @@ def aStar(srcNode, destNode, dest):
 
         for item in neighbourData:
             neighbourNode = item
-            time = g[currentNode[1]][neighbourNode]["time"]
+            time = pow(g[currentNode[1]][neighbourNode]["length"],x)*pow(g[currentNode[1]][neighbourNode]["time"],y)
 
             if neighbourNode not in last_node:
                 cost[neighbourNode] = gScore[currentNode[1]] + time
 
                 if cost[neighbourNode] < gScore.get(neighbourNode, float("inf")):
-                    last_node[neighbourNode] = (currentNode[1], g[currentNode[1]][neighbourNode]["wkt"], time, g[currentNode[1]][neighbourNode]["length"])
+                    last_node[neighbourNode] = (currentNode[1], g[currentNode[1]][neighbourNode]["wkt"],
+                        g[currentNode[1]][neighbourNode]["time"], g[currentNode[1]][neighbourNode]["length"])
 
                     gScore[neighbourNode] = cost[neighbourNode]
                     heuristic_value = gScore[neighbourNode] + calculateHeuristic(neighbourNode, dest)
@@ -116,14 +117,19 @@ def gotcoords():
     destNode = destNode["id"]
     print(srcNode)
     print(destNode)
-    route, Time_taken, Total_Distance = aStar(srcNode, destNode, dest)
+    print(entered_points)
+    start = time.time()
+    if entered_points["least"] == 0:
+        route, Time_taken, Total_Distance = aStar(srcNode, destNode, dest, 1, 0)
+    else:
+        route, Time_taken, Total_Distance = aStar(srcNode, destNode, dest, 0, 1)
     print(Time_taken)
     print(Total_Distance)
+    print(time.time() - start)
     try:
         route.pop(0)
     except IndexError:
         pass
-    print(str(datetime.datetime.now())) # Timing
     # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
     xml_request_dict = {u'result':[]}
     if len(route) > 0:
@@ -160,5 +166,4 @@ def gotcoords():
     else:
         xml_request_dict[u'result'] = 'None'
     # Result being sent back.
-    print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=True, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=True, attr_type=False)

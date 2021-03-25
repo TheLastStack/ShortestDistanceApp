@@ -111,3 +111,55 @@ body{
   left: 48px;
   margin-left: -11px;
 }
+#popup-content>div {
+  display: flex;
+  flex-direction: column;
+}
+#popup-content>div>div {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+#openmenu {
+  position: absolute;
+  top: 2vh;
+  right: 2vw;
+  font-weight: bolder;
+  font-size: 2vh;
+  background-color: #5f79c6;
+  border-radius: 0px;
+}
+#openmenu:hover {
+  background-color: #49577f;
+}
+#openmenu:active {
+  background-color: #2c344c;
+}
+#menu {
+  display:none;
+  position: absolute;
+  right: 1vw;
+  top: 0;
+  height: 90%;
+  padding: 5% 1% 1% 1%;
+  z-index: 1;
+  width: 25vw;
+}
+#menucontent {
+  display:flex;
+  flex-direction: column;
+  background-color: #5f79c6;
+  padding: 4%;
+  border: solid 1px #2c344c;
+  justify-content: space-around;
+}
+input {
+  vertical-align: baseline;
+  padding: 10%;
+  margin: 5%;
+}
+label {
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 3vh;
+}

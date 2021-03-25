@@ -104,30 +104,3 @@ FROM
 		 )spl_edge
 	LEFT JOIN graph_node ON graph_node.node = spl_edge.node) end_nodes
 	LEFT JOIN graph_node ON graph_node.node = start_node;
-  COPY
-  (SELECT
-  		source, target, wkt, length,
-  		CASE
-  			WHEN maxspeed IS NOT NULL
-  			THEN maxspeed
-  			WHEN highway ILIKE ANY(ARRAY['motorway', 'trunk'])
-  			THEN '100'
-  			WHEN highway ILIKE ANY(ARRAY['primary', 'raceway'])
-  			THEN '80'
-  			WHEN highway ILIKE 'primary_link'
-  			THEN '70'
-  			WHEN highway ILIKE 'secondary'
-  			THEN '60'
-  			WHEN highway ILIKE 'secondary_link'
-  			THEN '50'
-  			WHEN highway ILIKE 'tertiary'
-  			THEN '40'
-  			WHEN highway ILIKE ANY(ARRAY['track', 'road', 'tertiary_link'])
-  			THEN '30'
-  			WHEN highway ILIKE ANY(ARRAY['unclassified', 'residential', 'pedestrian', 'path'])
-  			THEN '15'
-  			ELSE '10'
-  			END maxspeed
-  	FROM
-  		graph_edges)
-   TO 'D:/speed_edges.csv' DELIMITER ',' CSV HEADER;

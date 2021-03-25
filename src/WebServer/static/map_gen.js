@@ -294,6 +294,25 @@ function sendCoords() {
   FD.append("white_y", ol.proj.transform(white_marker.getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326')[1]);
   FD.append("black_x", ol.proj.transform(black_marker.getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326')[0]);
   FD.append("black_y", ol.proj.transform(black_marker.getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326')[1]);
+  var elements = document.getElementsByTagName('input');
+  for(var i = 0; i < elements.length; i++)
+  {
+    if(elements[i].type="radio")
+    {
+      if(elements[i].checked)
+      {
+        FD.append("least", elements[i].value);
+      }
+    }
+  }
   XHR.open('POST', '/navigate');
   XHR.send(FD);
+}
+function openMenu() {
+  document.getElementById("menu").style.display = "block";
+  setTimeout(function() {document.addEventListener("click", tempListen);}, 500)
+}
+var tempListen = function(evt) {
+  document.getElementById("menu").style.display = "none";
+  document.removeEventListener('click', tempListen);
 }
