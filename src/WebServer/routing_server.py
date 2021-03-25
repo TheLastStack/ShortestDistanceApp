@@ -3,6 +3,7 @@ from flask import render_template
 from flask import request
 from statistics import mean
 from shapely import wkt
+from shapely import ops as shops
 import pandas as pd
 import heapq
 import networkx as nx
@@ -122,7 +123,10 @@ def gotcoords():
         resulting_nodes = []
         for i in route[:-1]:
             [lat, lon] = latlonData[latlonData["id"] == i[0]].iloc[0][["lat", "lon"]]
-            pulled_edge = list((wkt.loads(i[1])).coords)
+            try:
+                pulled_edge = list((wkt.loads(i[1])).coords)
+            except NotImplementedError:
+                pulled_edge = list((shops.linemerge(list((wkt.loads(i[1])).geoms))).coords)
             if pulled_edge[-1] == (lon, lat):
                 pulled_edge = reversed(pulled_edge)
             for x, y in pulled_edge:
@@ -134,7 +138,10 @@ def gotcoords():
         else:
             edge = edge.iloc[0]["wkt"]
             [lat, lon] = latlonData[latlonData["id"] == route[-1]].iloc[0][["lat", "lon"]]
-        pulled_edge = list((wkt.loads(edge)).coords)
+        try:
+            pulled_edge = list((wkt.loads(i[1])).coords)
+        except NotImplementedError:
+            pulled_edge = list((shops.linemerge(list((wkt.loads(i[1])).geoms))).coords)
         if pulled_edge[-1] == (lon, lat):
             pulled_edge = reversed(pulled_edge)
         for x, y in pulled_edge:
