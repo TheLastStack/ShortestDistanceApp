@@ -19,7 +19,7 @@ graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "speed_e
 graphData = graphData[["source", "target", "length", "maxspeed", "wkt"]]
 graphData["time"] = graphData["length"] / graphData["maxspeed"]
 graphType = nx.DiGraph()
-g = nx.from_pandas_edgelist(graphData, edge_attr=["time", "wkt"], create_using=graphType)
+g = nx.from_pandas_edgelist(graphData, edge_attr=["time", "wkt", "length"], create_using=graphType)
 
 def calculateHeuristic(currNode, dest):
     try:
@@ -39,12 +39,16 @@ def calculateHeuristic(currNode, dest):
 
 def createPath(last_node, current):
     path = [current]
+    ETA = 0
+    distance = 0
     while current in last_node.keys():
         current = last_node[current]
-        path.insert(0, current)
         if current is not None:
+            ETA += float(current[2])
+            distance += float(current[3])
+            path.insert(0, (current[0], current[1]))
             current = current[0]
-    return path
+    return path, ETA, distance
 
 def aStar(srcNode, destNode, dest):
     open_list = []
@@ -72,20 +76,21 @@ def aStar(srcNode, destNode, dest):
 
         for item in neighbourData:
             neighbourNode = item
-            distance = g[currentNode[1]][neighbourNode]["time"]
+            time = g[currentNode[1]][neighbourNode]["time"]
 
             if neighbourNode not in last_node:
-                cost[neighbourNode] = gScore[currentNode[1]] + distance
+                cost[neighbourNode] = gScore[currentNode[1]] + time
 
                 if cost[neighbourNode] < gScore.get(neighbourNode, float("inf")):
-                    last_node[neighbourNode] = (currentNode[1], g[currentNode[1]][neighbourNode]["wkt"])
+                    last_node[neighbourNode] = (currentNode[1], g[currentNode[1]][neighbourNode]["wkt"], time, g[currentNode[1]][neighbourNode]["length"])
+
                     gScore[neighbourNode] = cost[neighbourNode]
                     heuristic_value = gScore[neighbourNode] + calculateHeuristic(neighbourNode, dest)
 
                     if neighbourNode not in open_list:
                         heapq.heappush(open_list, (heuristic_value, neighbourNode))
 
-    return open_list
+    return open_list, 0.0, 0.0
 
 
 @app.route('/')
@@ -111,7 +116,9 @@ def gotcoords():
     destNode = destNode["id"]
     print(srcNode)
     print(destNode)
-    route = aStar(srcNode, destNode, dest)
+    route, Time_taken, Total_Distance = aStar(srcNode, destNode, dest)
+    print(Time_taken)
+    print(Total_Distance)
     try:
         route.pop(0)
     except IndexError:
@@ -148,7 +155,10 @@ def gotcoords():
             resulting_nodes.append((x, y))
         for x, y in resulting_nodes:
             xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
+        xml_request_dict[u'length'] = Total_Distance / 1000
+        xml_request_dict[u'time'] = Time_taken / 1000
     else:
         xml_request_dict[u'result'] = 'None'
     # Result being sent back.
-    return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)
+    print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=True, attr_type=False))
+    return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=True, attr_type=False)
