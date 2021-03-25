@@ -93,7 +93,8 @@ function drawCoords(status, response) {
     if (nodes.length == 0) {
       if (xmlDoc.getElementsByTagName("result")[0].textContent.localeCompare("None") == 0)
       {
-        var precontent = document.getElementById("loadtext").innerHTML = "No route found...";
+        var precontent = document.getElementById("loadtext").innerHTML;
+        document.getElementById("loadtext").innerHTML = "No route found...";
         setTimeout(function() {
           document.getElementById("modal").style.display = "none";
           document.getElementById("loadtext").innerHTML = precontent;

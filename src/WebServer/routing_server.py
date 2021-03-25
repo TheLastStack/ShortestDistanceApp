@@ -16,10 +16,10 @@ app = Flask(__name__)
 
 latlonData = pd.read_csv(os.path.join(os.getcwd(), "Nodes", "Speed_nodes.csv"))
 graphData = pd.read_csv(os.path.join(os.getcwd(), os.path.join("Nodes", "speed_edges.csv")))
-graphData = graphData[["source", "target", "length", "wkt"]]
-#graphData["time"] = graphData["length"] / graphData["maxspeed"]
+graphData = graphData[["source", "target", "length", "maxspeed", "wkt"]]
+graphData["time"] = graphData["length"] / graphData["maxspeed"]
 graphType = nx.DiGraph()
-g = nx.from_pandas_edgelist(graphData, edge_attr=["length", "wkt"], create_using=graphType)
+g = nx.from_pandas_edgelist(graphData, edge_attr=["time", "wkt"], create_using=graphType)
 
 def calculateHeuristic(currNode, dest):
     try:
@@ -72,7 +72,7 @@ def aStar(srcNode, destNode, dest):
 
         for item in neighbourData:
             neighbourNode = item
-            distance = g[currentNode[1]][neighbourNode]["length"]
+            distance = g[currentNode[1]][neighbourNode]["time"]
 
             if neighbourNode not in last_node:
                 cost[neighbourNode] = gScore[currentNode[1]] + distance
