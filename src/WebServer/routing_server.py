@@ -96,7 +96,6 @@ def gotcoords():
     entered_points = {}
     for key, value in request.form.lists():
         entered_points[key] = float(value[0])
-    print(entered_points)
     # Received Points are present in dictionary here.
     # A* algorithm here
     #7065632060
@@ -108,7 +107,6 @@ def gotcoords():
                 ((latlonData["lat"] - entered_points['black_y']).abs() + (latlonData["lon"] - entered_points['black_x']).abs()).idxmin()
                 ]
     dest = (destNode["lon"], destNode["lat"])
-    srcNode = 65684
     destNode = destNode["id"]
     print(srcNode)
     print(destNode)
@@ -118,33 +116,32 @@ def gotcoords():
     except IndexError:
         pass
     print(str(datetime.datetime.now())) # Timing
-    resulting_nodes = []
-    for i in route[:-1]:
-        [lat, lon] = latlonData[latlonData["id"] == i[0]].iloc[0][["lat", "lon"]]
-        pulled_edge = list((wkt.loads(i[1])).coords)
+    # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
+    xml_request_dict = {u'result':[]}
+    if len(route) > 0:
+        resulting_nodes = []
+        for i in route[:-1]:
+            [lat, lon] = latlonData[latlonData["id"] == i[0]].iloc[0][["lat", "lon"]]
+            pulled_edge = list((wkt.loads(i[1])).coords)
+            if pulled_edge[-1] == (lon, lat):
+                pulled_edge = reversed(pulled_edge)
+            for x, y in pulled_edge:
+                resulting_nodes.append((x, y))
+        edge = graphData[(graphData["source"] == route[-1]) & (graphData["target"] == route[-2][0])]
+        if (edge.empty):
+            edge = graphData[(graphData["source"] == route[-2][0]) & (graphData["target"] == route[-1])].iloc[0]["wkt"]
+            [lat, lon] = latlonData[latlonData["id"] == route[-2][0]].iloc[0][["lat", "lon"]]
+        else:
+            edge = edge.iloc[0]["wkt"]
+            [lat, lon] = latlonData[latlonData["id"] == route[-1]].iloc[0][["lat", "lon"]]
+        pulled_edge = list((wkt.loads(edge)).coords)
         if pulled_edge[-1] == (lon, lat):
             pulled_edge = reversed(pulled_edge)
         for x, y in pulled_edge:
             resulting_nodes.append((x, y))
-    edge = graphData[(graphData["source"] == route[-1]) & (graphData["target"] == route[-2][0])]
-    if (edge.empty):
-        edge = graphData[(graphData["source"] == route[-2][0]) & (graphData["target"] == route[-1])].iloc[0]["wkt"]
-        [lat, lon] = latlonData[latlonData["id"] == route[-2][0]].iloc[0][["lat", "lon"]]
-    else:
-        edge = edge.iloc[0]["wkt"]
-        [lat, lon] = latlonData[latlonData["id"] == route[-1]].iloc[0][["lat", "lon"]]
-    pulled_edge = list((wkt.loads(edge)).coords)
-    if pulled_edge[-1] == (lon, lat):
-        pulled_edge = reversed(pulled_edge)
-    for x, y in pulled_edge:
-        resulting_nodes.append((x, y))
-    # Path from A* will be of form: [(x0, y0), (x1, y1), ...]
-    xml_request_dict = {u'result':[]}
-    if len(route) > 0:
         for x, y in resulting_nodes:
             xml_request_dict[u'result'] += [{u'x': x, u'y': y}]
     else:
         xml_request_dict[u'result'] = 'None'
     # Result being sent back.
-    print(dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False))
     return dicttoxml.dicttoxml(xml_request_dict, item_func=lambda x: u'node', root=False, attr_type=False)

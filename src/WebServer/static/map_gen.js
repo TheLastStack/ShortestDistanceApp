@@ -57,7 +57,7 @@ function selectStyle(feature, resolution)
 var pre_vectorLayer = new ol.source.Vector({});
 var white_marker = new ol.Feature({
   name: "White Marker",
-  geometry: new ol.geom.Point(ol.proj.transform([78.4279, 17.2305], 'EPSG:4326', 'EPSG:3857')),
+  geometry: new ol.geom.Point(ol.proj.transform([78.4279, 17.2307], 'EPSG:4326', 'EPSG:3857')),
   color: "white"
 });
 var black_marker = new ol.Feature({
@@ -89,49 +89,61 @@ function drawCoords(status, response) {
   {
     const Parser = new DOMParser();
     const xmlDoc = Parser.parseFromString(response, "application/xml");
-    var layer_length = 0;
-    map.getLayers().forEach(layer => {
-      if (layer.get('name') && layer.get('name') == 'route_layer') {
-          map.removeLayer(layer);
-        }
-      layer_length++;
-    });
     var nodes = xmlDoc.getElementsByTagName("node");
-    var route_trace = new ol.geom.LineString([]);
-    for(var i = 0; i < nodes.length; i++)
-    {
-      route_trace.appendCoordinate([parseFloat(nodes[i].getElementsByTagName("x")[0].textContent),
-                                  parseFloat(nodes[i].getElementsByTagName("y")[0].textContent)]);
-    }
-    route_trace.transform('EPSG:4326', 'EPSG:3857');
-    var pre_lineLayer = new ol.source.Vector({});
-    pre_lineLayer.addFeature(
-      new ol.Feature({
-        geometry: route_trace,
-        name: "Line_trace"
-      })
-    );
-    var color = "#" + ((1 << 24) + ((Math.random() * 200) << 16) + ((Math.random() * 200) << 8) + Math.random() * 200).toString(16).slice(1);
-    color = color.split('.')[0];
-    var vectortracer = new ol.layer.Vector({
-      source: pre_lineLayer,
-      name: "route_layer",
-      style: new ol.style.Style({
-        stroke : new ol.style.Stroke({
-         color: color,
-         width: 5
-        })
-      }),
-      opacity: 0.5
-    });
-    map.addLayer(vectortracer);
-    vectortracer.setZIndex(layer_length);
-    map.getLayers().forEach(layer => {
-    if (layer.get('name') && layer.get('name') == 'Marker_layer'){
-        layer.setZIndex(layer_length + 1);
+    if (nodes.length == 0) {
+      if (xmlDoc.getElementsByTagName("result")[0].textContent.localeCompare("None") == 0)
+      {
+        var precontent = document.getElementById("loadtext").innerHTML = "No route found...";
+        setTimeout(function() {
+          document.getElementById("modal").style.display = "none";
+          document.getElementById("loadtext").innerHTML = precontent;
+        }, 2000);
       }
-    });
-    document.getElementById("modal").style.display = "none";
+    }
+    else {
+      var layer_length = 0;
+      map.getLayers().forEach(layer => {
+        if (layer.get('name') && layer.get('name') == 'route_layer') {
+            map.removeLayer(layer);
+          }
+        layer_length++;
+      });
+      var route_trace = new ol.geom.LineString([]);
+      for(var i = 0; i < nodes.length; i++)
+      {
+        route_trace.appendCoordinate([parseFloat(nodes[i].getElementsByTagName("x")[0].textContent),
+                                    parseFloat(nodes[i].getElementsByTagName("y")[0].textContent)]);
+      }
+      route_trace.transform('EPSG:4326', 'EPSG:3857');
+      var pre_lineLayer = new ol.source.Vector({});
+      pre_lineLayer.addFeature(
+        new ol.Feature({
+          geometry: route_trace,
+          name: "Line_trace"
+        })
+      );
+      var color = "#" + ((1 << 24) + ((Math.random() * 200) << 16) + ((Math.random() * 200) << 8) + Math.random() * 200).toString(16).slice(1);
+      color = color.split('.')[0];
+      var vectortracer = new ol.layer.Vector({
+        source: pre_lineLayer,
+        name: "route_layer",
+        style: new ol.style.Style({
+          stroke : new ol.style.Stroke({
+           color: color,
+           width: 5
+          })
+        }),
+        opacity: 0.5
+      });
+      map.addLayer(vectortracer);
+      vectortracer.setZIndex(layer_length);
+      map.getLayers().forEach(layer => {
+      if (layer.get('name') && layer.get('name') == 'Marker_layer'){
+          layer.setZIndex(layer_length + 1);
+        }
+      });
+      document.getElementById("modal").style.display = "none";
+    }
   }
 }
 function addRoute() {
