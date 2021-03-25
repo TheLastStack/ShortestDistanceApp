@@ -20,7 +20,7 @@ public void onCreate(Bundle savedInstanceState) {
     setContentView(webview);
     webview.getSettings().setJavaScriptEnabled(true);
     webview.getSettings().setDomStorageEnabled(true);
-    webview.loadUrl("http://10.0.2.2:5000/");
+    webview.loadUrl("http://10.0.2.2:8080/");
 
 }
 }
